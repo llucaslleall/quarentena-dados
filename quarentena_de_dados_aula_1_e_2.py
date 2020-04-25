@@ -14,8 +14,10 @@ Nesse trecho vamos importar as bases
 import pandas as pd
 
 filmes = pd.read_csv("https://raw.githubusercontent.com/llucaslleall/quarentena-dados/master/Bases/movies.csv")
+filmes
 
 notas = pd.read_csv("https://raw.githubusercontent.com/llucaslleall/quarentena-dados/master/Bases/ratings.csv")
+notas
 
 notas.columns = ["usuarioId","filmeId","nota","momento"]
 
@@ -55,6 +57,8 @@ notas.query("filmeId == 2")["nota"].plot(kind="hist")
 """# Aula 2 - Tratando os dados
 
 Tratando os dados recebidos
+
+## Desafio 3 da aula 1
 """
 
 filmes["generos"]
@@ -62,25 +66,25 @@ filmes["generos"]
 generos = filmes["generos"].str.get_dummies('|').sum()
 
 generos = generos.sort_values(ascending=False)
+generos
 
 generos.index
 
 generos.values
 
 generos.plot(kind="bar", title="generos", figsize=(10,5))
-plt.show()
 
-"""#Usando o seaborn"""
+"""### Usando o seaborn"""
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 sns.set_style("whitegrid")
 plt.figure(figsize=(16,6))
-sns.barplot(x=generos.index, y=generos.values, palette = sns.color_palette("BuGn_r", n_colors=len(generos)+5))
+sns.barplot(x=generos.index, y=generos.values, palette = sns.color_palette("BuGn_r", n_colors=len(generos)+10))
 plt.show()
 
-"""# Voltando na média
+"""## Voltando na média
 
 Voltando na média para também considerar a mediana
 """
@@ -99,3 +103,73 @@ plot_filme(919)
 
 sns.boxplot(data = notas.query("filmeId in [1,2,919,46578]"),x="filmeId",y="nota")
 
+"""#Desafios
+
+## 1. Colocar o número de avaliações e encontrar os 18 filmes que não tem nenhuma nota da base inicial
+"""
+
+#Verificando a base inicial
+notas.head()
+
+#Fazendo a contagem por id do filme
+contagem = notas.groupby("filmeId")["nota"].count()
+contagem
+
+#Adicionando essa informação na base filmes
+filmes = filmes.join(contagem, on="filmeId")
+filmes
+
+#Renomeando as colunas
+filmes.columns = ["filmeId","titulos","generos","conta_notas"]
+filmes.head()
+
+filmes.query("conta_notas.isnull()", engine='python')
+
+#Também colocando as notas para verificar se os filmes que tiveram maior nota foram os menos votados
+filmes = filmes.join(notas_medias, on="filmeId")
+
+#Renomeando as colunas
+filmes.columns = ["filmeId","titulos","generos","conta_notas","nota_media"]
+filmes.head()
+
+#Ordenando por nota_media
+filmes.sort_values("nota_media", ascending=False).head(15)
+
+#Ordenando por conta_notas
+filmes.sort_values("conta_notas", ascending=False).head(15)
+
+"""## 2. Arredondar a nota para 2 casas decimais"""
+
+#Recuperando a base de filmes
+filmes.head()
+
+#Criando uma nova coluna com o arredondamento da note
+filmes["nota_media_arred"] = filmes["nota_media"].round(2)
+filmes.head()
+
+"""## 3. Melorando a estética do plot"""
+
+sns.set_style("whitegrid")
+plt.figure(figsize=(16,6))
+sns.barplot(x=generos.index, y=generos.values, palette = sns.color_palette("BuGn_r", n_colors=len(generos)+10))
+plt.xticks(rotation=45) 
+plt.show()
+
+"""## 4. Fazer o boxplot dos 10 filmes com mais votos"""
+
+#Voltando na tabela de filmes e pegando o top 10
+filmes.sort_values("conta_notas",ascending=False).head(10)["filmeId"]
+
+plt.figure(figsize=(20,8))
+sns.boxplot(data = notas.query("filmeId in [356, 318, 296, 593, 2571, 260, 480, 110, 589, 527]"), x="filmeId", y="nota")
+
+"""## 5. Colocar o nome no eixo x"""
+
+#Trazendo a informaçao do nome
+notas_nome = notas.join(filmes["titulos"], on="filmeId")
+
+#Construindo o mesmo gráfico, mas agora com o nome
+plt.figure(figsize=(20,8))
+plt.xticks(rotation=90)
+sns.boxplot(data = notas_nome.query("filmeId in [356, 318, 296, 593, 2571, 260, 480, 110, 589, 527]"), x="titulos", y="nota")
+plt.show()

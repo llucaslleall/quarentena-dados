@@ -40,5 +40,78 @@ sns.distplot(criticas)
 base_imdb.sort_values("gross",ascending=False).head()
 
 #Pegando valores aleatórios
-base_imdb.sample(10)
+base_imdb.sample(5)
+
+
+
+"""#Analisando a cor do filme"""
+
+#Tirando nulos (aqui vamos filtrar pelos valores não nulos)
+color_or_bw = base_imdb.query("color in ['Color', ' Black and White']")
+#Obs: tem um espaço antes do " Black"
+
+#Criando a nova coluna com 0 ou 1
+color_or_bw["color_0_ou_1"] = (color_or_bw["color"] == "Color")*1
+
+color_or_bw["color_0_ou_1"].value_counts()
+
+color_or_bw.groupby("color_0_ou_1").mean()["imdb_score"]
+
+"""#Analisando a relação entre budget e faturamento"""
+
+#Retirando os valores vazios
+b_g = base_imdb[["director_name", "title_year", "country","budget","gross","imdb_score"]].dropna()
+
+#Buscando apenas os registros americanos por causa do problema de conversão de moeda
+imdb_usa = b_g.query("country == 'USA'")
+
+imdb_usa["lucro"] = imdb_usa["gross"] - imdb_usa["budget"]
+
+import seaborn as sns
+sns.scatterplot(x="budget",y="lucro",data=imdb_usa)
+
+imdb_usa.query("budget > 2.5*10**8 & lucro < -1.5*10**8")
+
+base_imdb.query("budget == 263700000.0 & gross == 73058679.0")
+
+"""#Verificando mais algumas relações"""
+
+#Fazendo a contagem de filmes por diretor
+filmes_diretor = imdb_usa["director_name"].value_counts()
+filmes_diretor.head()
+
+#Fazendo o join das duas tabelas
+gross_director = imdb_usa[["director_name","gross"]].set_index("director_name").join(filmes_diretor, on="director_name")
+
+#Renomeando as colunas e retirando o index
+gross_director.columns = ['arrecadacao', 'filmes_mesmo_diretor']
+gross_director = gross_director.reset_index()
+gross_director.head()
+
+#Traçando o gráfico desses 2 valores
+import seaborn as sns
+sns.scatterplot(x="filmes_mesmo_diretor",y="arrecadacao",data=gross_director)
+
+#Agora fazendo o gráfico da base considerando os dados 2 a 2
+sns.pairplot(data=imdb_usa[["gross","budget","lucro","title_year"]])
+
+imdb_usa[["gross","budget","lucro","title_year"]].corr()
+
+"""#Desafio
+
+## 1. Considerar a nota na correlação
+"""
+
+sns.pairplot(data=imdb_usa[["gross","budget","lucro","title_year","imdb_score"]])
+
+imdb_usa[["gross","budget","lucro","title_year", "imdb_score"]].corr()
+
+"""## Somente os filmes após 2000"""
+
+#Filtrando só os filmes após 2000
+imdb_usa = imdb_usa.query("title_year >= 2000")
+
+sns.pairplot(data=imdb_usa[["gross","budget","lucro","title_year","imdb_score"]])
+
+imdb_usa[["gross","budget","lucro","title_year", "imdb_score"]].corr()
 
